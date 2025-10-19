@@ -1,4 +1,4 @@
-# DCCL: Connecting Domains and Contrasting Samples: A Ladder for Domain Generalization
+# Connecting Domains and Contrasting Samples: A Ladder for Domain Generalization (DCCL)
 
 [![KDD 2025](https://img.shields.io/badge/KDD-2025-blue)](https://kdd2025.kdd.org/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-latest-red)](https://pytorch.org/)
