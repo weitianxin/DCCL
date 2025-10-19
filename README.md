@@ -101,6 +101,8 @@ python download.py --data_dir data
 
 Navigate to the DCCL directory and run:
 
+We default set ```--algorithm DCCL```
+
 ```bash
 cd DCCL/
 python train_all.py DCCL_OH_0 --dataset OfficeHome --deterministic --trial_seed 0 --checkpoint_freq 100 --data_dir ../data
@@ -147,9 +149,7 @@ python train_all.py DCCL_TI_0 --dataset TerraIncognita --deterministic --trial_s
 
 The training outputs will be saved in `DCCL/train_output/[DATASET]/[EXPERIMENT_NAME]/` containing:
 - Training logs
-- Model checkpoints  
 - Evaluation results
-- Tensorboard logs (in `runs/` subdirectory)
 
 ## 🙏 Acknowledgments
 
