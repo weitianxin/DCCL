@@ -1,147 +1,170 @@
-# SWAD: Domain Generalization by Seeking Flat Minima (NeurIPS'21)
+# DCCL: Connecting Domains and Contrasting Samples: A Ladder for Domain Generalization
 
-Official PyTorch implementation of [SWAD: Domain Generalization by Seeking Flat Minima](https://arxiv.org/abs/2102.08604).
+[![KDD 2025](https://img.shields.io/badge/KDD-2025-blue)](https://kdd2025.kdd.org/)
+[![PyTorch](https://img.shields.io/badge/PyTorch-latest-red)](https://pytorch.org/)
+[![Python](https://img.shields.io/badge/Python-3.6+-green)](https://python.org/)
 
-Junbum Cha, Sanghyuk Chun, Kyungjae Lee, Han-Cheol Cho, Seunghyun Park, Yunsung Lee, Sungrae Park.
+Official implementation of **"Connecting Domains and Contrasting Samples: A Ladder for Domain Generalization"** (KDD 2025).
 
-<p align="center">
-    <img src="./assets/method.png" width="90%" />
-</p>
+## 📋 Overview
 
-Note that this project is built upon [DomainBed@3fe9d7](https://github.com/facebookresearch/DomainBed/tree/3fe9d7bb4bc14777a42b3a9be8dd887e709ec414).
+DCCL (Domain-Aware Contrastive Cross-domain Learning) is a novel approach for domain generalization that combines multiple complementary loss components to learn robust representations across different domains. The algorithm integrates:
 
-<p align="center">
-    <img src="./assets/fig1.png" width="90%" />
-</p>
+- **Cross-entropy loss** for standard classification
+- **Contrastive loss** between aggressively augmented views for invariant representation learning
+- **Layer-wise contrastive loss** for contrastive feature alignment with pre-trained models
+- **Generative alignment regularization** to generative align features with pre-trained knowledge
 
+## 🏗️ Code Structure
 
-## Preparation
+```
+data/
+DCCL/
+├── train_all.py                    # Main training script
+├── config.yaml                     # Configuration file
+├── domainbed/
+│   ├── algorithms/
+│   │   └── algorithms.py           # 🔥 Core DCCL algorithm implementation
+│   ├── lib/
+│   │   └── cl_hparams.py           # 🔥 Core hyperparameter settings
+│   ├── datasets/                   # Dataset loaders
+│   ├── networks.py                 # Network architectures
+│   ├── trainer.py                  # Training loop
+│   └── ...
+└── ...
+```
 
-### Dependencies
+### Key Files:
+- **`DCCL/domainbed/algorithms/algorithms.py`**: Contains the main DCCL algorithm with detailed comments explaining each loss component
+- **`DCCL/domainbed/lib/cl_hparams.py`**: Core hyperparameter configurations for different datasets
 
-```sh
+## 🚀 Algorithm Flow
+
+The DCCL algorithm follows this training procedure:
+
+1. **Data Preparation**: Load original and augmented image pairs
+2. **Feature Extraction**: Extract features using trainable and frozen pre-trained networks
+3. **Multi-Loss Computation**:
+   - Classification loss (always active)
+   - Contrastive loss (controlled by `--l`)
+   - Domain alignment loss (controlled by `--l_d`) 
+   - Layer-wise contrastive loss (controlled by `--l_layer`)
+4. **Optimization**: Multi-component loss backpropagation with different learning rates
+
+## ⚙️ Core Hyperparameters
+
+The main tuning parameters are located in `DCCL/domainbed/lib/cl_hparams.py`:
+
+### Essential Parameters (main tuning focus):
+- `--l`: Weight for contrastive loss (default: 1.0)
+- `--l_d`: Weight for domain alignment loss (default: 0.05) 
+- `--l_layer`: Weight for layer-wise contrastive loss (default: 1.0)
+- `--t`: Temperature for contrastive loss (default: 0.1)
+- `--t_pre`: Temperature for pre-trained feature loss (default: 0.2)
+- `--n_layer`: Number of layers in projection head (default: 1)
+
+## 🛠️ Installation
+
+### Environment Requirements
+
+```
+Python: 3.6+
+PyTorch: latest
+Torchvision: 0.10.0
+CUDA: 10.2
+CUDNN: 7605
+NumPy: 1.19.5
+PIL: 7.2.0
+```
+
+### Setup
+You can
+```bash
+git clone <this-repo>
+cd DCCL/
 pip install -r requirements.txt
 ```
 
-### Datasets
+## 📁 Data Preparation
 
-```sh
-python -m domainbed.scripts.download --data_dir=/my/datasets/path
+Each dataset can be easily accessed from official sources. For example, the VLCS dataset can be found on the official [repo](https://github.com/belaalb/G2DM#download-vlcs).
+
+To download all datasets automatically:
+
+```bash
+python download.py --data_dir data
 ```
 
-### Environments
+## 🏃‍♂️ Running Experiments
 
-Environment details used for our study.
+### Basic Usage
 
-```
-Python: 3.8.6
-PyTorch: 1.7.0+cu92
-Torchvision: 0.8.1+cu92
-CUDA: 9.2
-CUDNN: 7603
-NumPy: 1.19.4
-PIL: 8.0.1
+Navigate to the DCCL directory and run:
+
+```bash
+cd DCCL/
+python train_all.py DCCL_OH_0 --dataset OfficeHome --deterministic --trial_seed 0 --checkpoint_freq 100 --data_dir ../data
 ```
 
-## How to Run
+### Multiple Seeds
 
-`train_all.py` script conducts multiple leave-one-out cross-validations for all target domain.
-
-```sh
-python train_all.py exp_name --dataset PACS --data_dir /my/datasets/path
+```bash
+python train_all.py DCCL_OH_0 --dataset OfficeHome --deterministic --trial_seed 0 --checkpoint_freq 100 --data_dir ../data
+python train_all.py DCCL_OH_1 --dataset OfficeHome --deterministic --trial_seed 1 --checkpoint_freq 100 --data_dir ../data
+python train_all.py DCCL_OH_2 --dataset OfficeHome --deterministic --trial_seed 2 --checkpoint_freq 100 --data_dir ../data
 ```
 
-Experiment results are reported as a table. In the table, the row `SWAD` indicates out-of-domain accuracy from SWAD.
-The row `SWAD (inD)` indicates in-domain validation accuracy.
+### Different Configurations
 
-Example results:
-```
-+------------+--------------+---------+---------+---------+---------+
-| Selection  | art_painting | cartoon |  photo  |  sketch |   Avg.  |
-+------------+--------------+---------+---------+---------+---------+
-|   oracle   |   82.245%    | 85.661% | 97.530% | 83.461% | 87.224% |
-|    iid     |   87.919%    | 78.891% | 96.482% | 78.435% | 85.432% |
-|    last    |   82.306%    | 81.823% | 95.135% | 82.061% | 85.331% |
-| last (inD) |   95.807%    | 95.291% | 96.306% | 95.477% | 95.720% |
-| iid (inD)  |   97.275%    | 96.619% | 96.696% | 97.253% | 96.961% |
-|    SWAD    |   89.750%    | 82.942% | 97.979% | 81.870% | 88.135% |
-| SWAD (inD) |   97.713%    | 97.649% | 97.316% | 98.074% | 97.688% |
-+------------+--------------+---------+---------+---------+---------+
-```
-In this example, the DG performance of SWAD for PACS dataset is 88.135%.
+**Different Backbone Models:**
+```bash
+# CLIP ViT-B/16
+python train_all.py DCCL_OH_vit --dataset OfficeHome --deterministic --trial_seed 2 --checkpoint_freq 100 --data_dir ../data --model clip_vit-b16
 
-If you set `indomain_test` option to `True`, the validation set is splitted to validation and test sets,
-and the `(inD)` keys become to indicate in-domain test accuracy.
-
-
-### Reproduce the results of the paper
-
-We provide the instructions to reproduce the main results of the paper, Table 1 and 2.
-Note that the difference in a detailed environment or uncontrolled randomness may bring a little different result from the paper.
-
-- PACS
-
-```
-python train_all.py PACS0 --dataset PACS --deterministic --trial_seed 0 --checkpoint_freq 100 --data_dir /my/datasets/path
-python train_all.py PACS1 --dataset PACS --deterministic --trial_seed 1 --checkpoint_freq 100 --data_dir /my/datasets/path
-python train_all.py PACS2 --dataset PACS --deterministic --trial_seed 2 --checkpoint_freq 100 --data_dir /my/datasets/path
+# RegNet
+python train_all.py DCCL_OH_reg --dataset OfficeHome --deterministic --trial_seed 2 --checkpoint_freq 100 --data_dir ../data --model regnet
 ```
 
-- VLCS
-
-```
-python train_all.py VLCS0 --dataset VLCS --deterministic --trial_seed 0 --checkpoint_freq 50 --tolerance_ratio 0.2 --data_dir /my/datasets/path
-python train_all.py VLCS1 --dataset VLCS --deterministic --trial_seed 1 --checkpoint_freq 50 --tolerance_ratio 0.2 --data_dir /my/datasets/path
-python train_all.py VLCS2 --dataset VLCS --deterministic --trial_seed 2 --checkpoint_freq 50 --tolerance_ratio 0.2 --data_dir /my/datasets/path
+**Limited Labeled Data:**
+```bash
+# 10% labeled data
+python train_all.py DCCL_OH_res50_0.1 --dataset OfficeHome --deterministic --trial_seed 2 --checkpoint_freq 100 --data_dir ../data --label_ratio 0.1
 ```
 
-- OfficeHome
+**Different Datasets:**
+```bash
+# PACS
+python train_all.py DCCL_PACS_0 --dataset PACS --deterministic --trial_seed 0 --checkpoint_freq 100 --data_dir ../data
 
-```
-python train_all.py OH0 --dataset OfficeHome --deterministic --trial_seed 0 --checkpoint_freq 100 --data_dir /my/datasets/path
-python train_all.py OH1 --dataset OfficeHome --deterministic --trial_seed 1 --checkpoint_freq 100 --data_dir /my/datasets/path
-python train_all.py OH2 --dataset OfficeHome --deterministic --trial_seed 2 --checkpoint_freq 100 --data_dir /my/datasets/path
-```
+# VLCS  
+python train_all.py DCCL_VLCS_0 --dataset VLCS --deterministic --trial_seed 0 --checkpoint_freq 100 --data_dir ../data
 
-- TerraIncognita
-
-```
-python train_all.py TR0 --dataset TerraIncognita --deterministic --trial_seed 0 --checkpoint_freq 100 --data_dir /my/datasets/path
-python train_all.py TR1 --dataset TerraIncognita --deterministic --trial_seed 1 --checkpoint_freq 100 --data_dir /my/datasets/path
-python train_all.py TR2 --dataset TerraIncognita --deterministic --trial_seed 2 --checkpoint_freq 100 --data_dir /my/datasets/path
+# TerraIncognita
+python train_all.py DCCL_TI_0 --dataset TerraIncognita --deterministic --trial_seed 0 --checkpoint_freq 100 --data_dir ../data
 ```
 
-- DomainNet
+## 📊 Results
 
-```
-python train_all.py DN0 --dataset DomainNet --deterministic --trial_seed 0 --checkpoint_freq 500 --data_dir /my/datasets/path
-python train_all.py DN1 --dataset DomainNet --deterministic --trial_seed 1 --checkpoint_freq 500 --data_dir /my/datasets/path
-python train_all.py DN2 --dataset DomainNet --deterministic --trial_seed 2 --checkpoint_freq 500 --data_dir /my/datasets/path
-```
+The training outputs will be saved in `DCCL/train_output/[DATASET]/[EXPERIMENT_NAME]/` containing:
+- Training logs
+- Model checkpoints  
+- Evaluation results
+- Tensorboard logs (in `runs/` subdirectory)
 
+## 🙏 Acknowledgments
 
-## Main Results
+This codebase builds heavily upon the excellent [SWAD](https://github.com/khanrc/swad) framework. We gratefully acknowledge their foundational work in domain generalization research.
 
-<p align="center">
-    <img src="./assets/fig2.png" width="80%" />
-</p>
+## 📖 Citation
 
+If you find this work helpful, please kindly cite:
 
-## Citation
-
-The paper will be published at NeurIPS 2021.
-
-```
-@inproceedings{cha2021swad,
-  title={SWAD: Domain Generalization by Seeking Flat Minima},
-  author={Cha, Junbum and Chun, Sanghyuk and Lee, Kyungjae and Cho, Han-Cheol and Park, Seunghyun and Lee, Yunsung and Park, Sungrae},
-  booktitle={Advances in Neural Information Processing Systems (NeurIPS)},
-  year={2021}
+```bibtex
+@inproceedings{wei2025connecting,
+  title={Connecting domains and contrasting samples: A ladder for domain generalization},
+  author={Wei, Tianxin and Chen, Yifan and He, Xinrui and Bao, Wenxuan and He, Jingrui},
+  booktitle={Proceedings of the 31st ACM SIGKDD Conference on Knowledge Discovery and Data Mining V. 1},
+  pages={1563--1574},
+  year={2025}
 }
 ```
-
-## License
-
-This source code is released under the MIT license, included [here](./LICENSE).
-
-This project includes some code from [DomainBed](https://github.com/facebookresearch/DomainBed/tree/3fe9d7bb4bc14777a42b3a9be8dd887e709ec414), also MIT licensed.

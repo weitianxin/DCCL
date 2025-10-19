@@ -11,3 +11,10 @@ perturb_results/
 *.pdf
 *.sh
 *.ipynb
+*.png
+*.jpg
+data/
+DCCL/draw
+DCCL/assets/
+DCCL/vis
+
